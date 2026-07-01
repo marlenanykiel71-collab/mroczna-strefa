@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Build Automatically
 
 on:
   push:
@@ -6,27 +6,26 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '20'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile || bun install
+        run: npm install
 
-      - name: Build static site
-        run: bun run build:static
-
-      - name: Ensure .nojekyll exists
-        run: touch dist-static/.nojekyll
+      - name: Build the project
+        run: npm run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
