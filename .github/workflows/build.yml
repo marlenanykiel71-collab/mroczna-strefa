@@ -49,6 +49,10 @@ jobs:
               cp "public/$f" "$OUT/$f"
             fi
           done
+          # Rewrite absolute /assets/ paths to relative ./assets/ so the site
+          # works from any subpath / FTP root.
+          find "$OUT" -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) \
+            -exec sed -i 's|"/assets/|"./assets/|g; s|(/assets/|(./assets/|g; s|'"'"'/assets/|'"'"'./assets/|g' {} +
           ls -la "$OUT"
 
       - name: Deploy to gh-pages (only built output)
