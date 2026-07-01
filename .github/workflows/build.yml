@@ -1,9 +1,10 @@
-name: Build Automatically
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-deploy:
@@ -16,16 +17,45 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
-      - name: Build the project
+      - name: Build static site
+        env:
+          NITRO_PRESET: static
         run: npm run build
 
-      - name: Deploy to GitHub Pages
+      - name: Locate build output
+        id: locate
+        run: |
+          if [ -d ".output/public" ]; then
+            echo "dir=.output/public" >> "$GITHUB_OUTPUT"
+          elif [ -d "dist" ]; then
+            echo "dir=dist" >> "$GITHUB_OUTPUT"
+          else
+            echo "No build output found" >&2
+            ls -la
+            exit 1
+          fi
+
+      - name: Ensure .nojekyll and required root files
+        run: |
+          OUT="${{ steps.locate.outputs.dir }}"
+          touch "$OUT/.nojekyll"
+          for f in favicon.ico og-image.png placeholder.svg robots.txt; do
+            if [ -f "public/$f" ] && [ ! -f "$OUT/$f" ]; then
+              cp "public/$f" "$OUT/$f"
+            fi
+          done
+          ls -la "$OUT"
+
+      - name: Deploy to gh-pages (only built output)
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ${{ steps.locate.outputs.dir }}
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "deploy: static build"
