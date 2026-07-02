@@ -22,15 +22,17 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      - name: Build static site
-        env:
-          NITRO_PRESET: static
+      - name: Build site
         run: npm run build
 
       - name: Locate build output
         id: locate
         run: |
-          if [ -d ".output/public" ]; then
+          # TanStack Start / Nitro emits the browser bundle + all files from
+          # `public/` (including our hand-rolled index.html) into dist/client.
+          if [ -d "dist/client" ]; then
+            echo "dir=dist/client" >> "$GITHUB_OUTPUT"
+          elif [ -d ".output/public" ]; then
             echo "dir=.output/public" >> "$GITHUB_OUTPUT"
           elif [ -d "dist" ]; then
             echo "dir=dist" >> "$GITHUB_OUTPUT"
@@ -40,19 +42,20 @@ jobs:
             exit 1
           fi
 
-      - name: Ensure .nojekyll and required root files
+      - name: Ensure required root files
         run: |
           OUT="${{ steps.locate.outputs.dir }}"
           touch "$OUT/.nojekyll"
-          for f in favicon.ico og-image.png placeholder.svg robots.txt; do
+          for f in index.html favicon.ico og-image.png placeholder.svg robots.txt; do
             if [ -f "public/$f" ] && [ ! -f "$OUT/$f" ]; then
               cp "public/$f" "$OUT/$f"
             fi
           done
-          # Rewrite absolute /assets/ paths to relative ./assets/ so the site
-          # works from any subpath / FTP root.
+          # Rewrite any absolute /assets/ paths to relative ./assets/ so the
+          # site works from any subpath / raw FTP root.
           find "$OUT" -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) \
-            -exec sed -i 's|"/assets/|"./assets/|g; s|(/assets/|(./assets/|g; s|'"'"'/assets/|'"'"'./assets/|g' {} +
+            -exec sed -i 's|"/assets/|"./assets/|g; s|(/assets/|(./assets/|g; s|'"'"'/assets/|'"'"'./assets/|g' {} + 2>/dev/null || true
+          echo "== gh-pages output =="
           ls -la "$OUT"
 
       - name: Deploy to gh-pages (only built output)

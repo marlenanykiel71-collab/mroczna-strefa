@@ -2,17 +2,9 @@
 //   tanstackStart, viteReact, tailwindcss, tsConfigPaths, nitro, componentTagger, env, aliases…
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// Prerender is only compatible with a non-Cloudflare build. Enable it only when
-// the CI GitHub Actions workflow requests a static build (NITRO_PRESET=static).
-// The Lovable sandbox forces the Cloudflare preset, which is incompatible with
-// the prerender preview-server plugin, so prerender must stay off there.
-const enablePrerender = process.env.NITRO_PRESET === "static";
-
-export default defineConfig({
-  tanstackStart: enablePrerender
-    ? {
-        prerender: { enabled: true, crawlLinks: true },
-        pages: [{ path: "/" }],
-      }
-    : {},
-});
+// A prerender-based static export is not viable in the Lovable sandbox
+// (Cloudflare preset is forced) nor reliably in CI (server-entry shape
+// mismatch). The static gh-pages deploy uses a hand-rolled `public/index.html`
+// instead — it is copied verbatim into `dist/client/` on every build, so the
+// TanStack Start / Nitro configuration stays untouched.
+export default defineConfig({});
