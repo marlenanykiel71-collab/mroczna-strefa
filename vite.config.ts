@@ -12,7 +12,6 @@ export default defineConfig({
     ? {
         preset: "static",
         output: { dir: "dist", serverDir: "dist/server", publicDir: "dist/client" },
-        prerender: { crawlLinks: true, routes: ["/"] },
       }
     : undefined,
   tanstackStart: isStatic
@@ -22,3 +21,4 @@ export default defineConfig({
       }
     : {},
 });
+
